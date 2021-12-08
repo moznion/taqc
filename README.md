@@ -128,7 +128,7 @@ type QueryParam struct {
 }
 ```
 
-then you run `go generate ./...`, it generates code on `query_param_gen.go` that is in the same directory of the original struct file.
+then you run `go generate ./...`, it generates code on `query_param_gen.go` that is in the same directory of the original struct file. That generated file has a method `(v *QueryParam) ToQueryParameters() url.Values`.
 
 ## Author
 
