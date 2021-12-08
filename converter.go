@@ -42,7 +42,6 @@ func ConvertToQueryParams(v interface{}) (url.Values, error) {
 		field := elem.Field(i)
 		fieldKind := field.Kind()
 		switch fieldKind {
-		// TODO pointer support
 		case reflect.String:
 			qp.Set(paramName, field.String())
 		case reflect.Int64:
@@ -52,6 +51,24 @@ func ConvertToQueryParams(v interface{}) (url.Values, error) {
 		case reflect.Bool:
 			if field.Bool() {
 				qp.Set(paramName, "1")
+			}
+		case reflect.Ptr:
+			if !field.IsNil() {
+				fieldElem := field.Elem()
+				switch fieldElem.Kind() {
+				case reflect.String:
+					qp.Set(paramName, fieldElem.String())
+				case reflect.Int64:
+					qp.Set(paramName, fmt.Sprintf("%d", fieldElem.Int()))
+				case reflect.Float64:
+					qp.Set(paramName, fmt.Sprintf("%f", fieldElem.Float()))
+				case reflect.Bool:
+					if fieldElem.Bool() {
+						qp.Set(paramName, "1")
+					}
+				default:
+					return nil, fmt.Errorf("field type is *%s: %w", fieldKind, ErrUnsupportedFieldType)
+				}
 			}
 		case reflect.Slice:
 			l := field.Len()
