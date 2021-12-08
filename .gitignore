@@ -1,3 +1,6 @@
 /vendor/
 /coverage.txt
 /cmd/taqc/internal/tests/*_gen.go
+/dist/*
+!/dist/.gitkeep
+

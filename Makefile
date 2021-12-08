@@ -20,3 +20,17 @@ fmt-check:
 
 gen:
 	go generate ./...
+
+
+clean:
+	rm -f ./dist/taqc_*
+
+GOLANG_CONTAINER := "golang:1.17.3-bullseye"
+
+build:
+	docker run -it --rm --env GOOS=$(GOOS) --env GOARCH=$(GOARCH) -v $(shell pwd):/taqc -w /taqc $(GOLANG_CONTAINER) \
+		go build \
+		-ldflags '-X "main.revision=$(shell git rev-parse HEAD)" -X "main.version=$(shell git describe --abbrev=0 --tags)"' \
+		-o dist/taqc_$(GOOS)_$(GOARCH) \
+		./cmd/taqc/taqc.go
+
