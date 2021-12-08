@@ -16,7 +16,7 @@ type Query struct {
 	ShouldBeIgnored string
 }
 
-queryParams, err := ConvertToQueryParams(&Query{
+queryParams, err := taqc.ConvertToQueryParams(&Query{
 	Foo:             "string_value",
 	Bar:             nil, // <= should be ignored
 	Buz:             123,
