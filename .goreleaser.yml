@@ -8,8 +8,8 @@ builds:
   -
     main: ./cmd/taqc/taqc.go
     ldflags:
-    - "-X main.rev={{ .FullCommit }}"
-    - "-X main.ver={{ .Version }}"
+    - "-X main.revision={{ .FullCommit }}"
+    - "-X main.version={{ .Version }}"
     env:
       - CGO_ENABLED=0
     goos:
