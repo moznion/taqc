@@ -14,7 +14,7 @@ var (
 	ErrUnsupportedFieldType      = errors.New("unsupported filed type has come")
 )
 
-const tagName = "taqc"
+const TagName = "taqc"
 
 func ConvertToQueryParams(v interface{}) (url.Values, error) {
 	if v == nil {
@@ -28,7 +28,7 @@ func ConvertToQueryParams(v interface{}) (url.Values, error) {
 	for i := 0; i < elem.NumField(); i++ {
 		typeField := elem.Type().Field(i)
 		tag := typeField.Tag
-		tagValue, ok := tag.Lookup(tagName)
+		tagValue, ok := tag.Lookup(TagName)
 		if !ok { // nothing to do
 			continue
 		}

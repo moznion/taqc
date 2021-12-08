@@ -2,7 +2,7 @@
 
 check: lint test fmt-check
 
-test:
+test: gen
 	go test ./... -race -v -coverprofile="coverage.txt" -covermode=atomic
 
 lint:
@@ -18,3 +18,5 @@ fmt-check:
 		EXIT_CODE=$$?; \
 		if [ $$EXIT_CODE -eq 0 ]; then exit 1; fi
 
+gen:
+	go generate ./...
