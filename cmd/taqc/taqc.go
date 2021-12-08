@@ -65,8 +65,9 @@ func main() {
 		g.NewNewline(),
 		g.NewPackage(pkg.Name),
 		g.NewNewline(),
-		g.NewImport("fmt", "net/url"),
 	)
+
+	timeUsed := false
 
 	f := g.NewFunc(g.NewFuncReceiver("v", typeName), g.NewFuncSignature("ToQueryParameters").ReturnTypes("url.Values")).AddStatements(
 		g.NewRawStatement("qp := url.Values{}"),
@@ -89,6 +90,10 @@ func main() {
 					g.NewRawStatementf(`qp.Set("%s", "1")`, paramName),
 				),
 			)
+		case "time.Time":
+			timeUsed = true
+			timeFormatter, _ := field.TimeFormatterStmt.Generate(0)
+			f = f.AddStatements(g.NewRawStatementf(`qp.Set("%s", %s(v.%s))`, paramName, strings.TrimRight(timeFormatter, "\n"), fieldName))
 		case "*string":
 			f = f.AddStatements(
 				g.NewIf(
@@ -115,6 +120,15 @@ func main() {
 				g.NewIf(
 					fmt.Sprintf("v.%s != nil && *v.%s", fieldName, fieldName),
 					g.NewRawStatementf(`qp.Set("%s", "1")`, paramName),
+				),
+			)
+		case "*time.Time":
+			timeUsed = true
+			timeFormatter, _ := field.TimeFormatterStmt.Generate(0)
+			f = f.AddStatements(
+				g.NewIf(
+					fmt.Sprintf("v.%s != nil", fieldName),
+					g.NewRawStatementf(`qp.Set("%s", %s(*v.%s))`, paramName, strings.TrimRight(timeFormatter, "\n"), fieldName),
 				),
 			)
 		case "[]string":
@@ -144,6 +158,17 @@ func main() {
 					g.NewRawStatementf(`qp.Add("%s", fmt.Sprintf("%%f", %s[i]))`, paramName, sliceFieldName),
 				),
 			)
+		case "[]time.Time":
+			timeUsed = true
+			sliceFieldName := strcase.ToLowerCamel(fmt.Sprintf("%s_slice", fieldName))
+			timeFormatter, _ := field.TimeFormatterStmt.Generate(0)
+			f = f.AddStatements(
+				g.NewRawStatementf("%s := v.%s", sliceFieldName, fieldName),
+				g.NewFor(
+					fmt.Sprintf("i := 0; i < len(%s); i++", sliceFieldName),
+					g.NewRawStatementf(`qp.Add("%s", %s(%s[i]))`, paramName, strings.TrimRight(timeFormatter, "\n"), sliceFieldName),
+				),
+			)
 		default:
 			log.Fatalf("[error] unsupported field type: %s", fieldType)
 		}
@@ -151,7 +176,12 @@ func main() {
 
 	f = f.AddStatements(g.NewReturnStatement("qp"))
 
-	code, err := rootStmt.AddStatements(f).Gofmt("-s").Generate(0)
+	imports := g.NewImport("fmt", "net/url")
+	if timeUsed {
+		imports = imports.AddImports("time")
+	}
+
+	code, err := rootStmt.AddStatements(imports, f).Gofmt("-s").Generate(0)
 	if err != nil {
 		log.Fatalf("[error] failed to generate code: %s", err)
 	}

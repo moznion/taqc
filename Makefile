@@ -1,8 +1,8 @@
 .PHONY: check test lint fmt fmt-check
 
-check: gen lint test fmt-check
+check: test-gen lint test fmt-check
 
-test: gen
+test: test-gen
 	go test ./... -race -v -coverprofile="coverage.txt" -covermode=atomic
 
 lint:
@@ -18,9 +18,11 @@ fmt-check:
 		EXIT_CODE=$$?; \
 		if [ $$EXIT_CODE -eq 0 ]; then exit 1; fi
 
-gen:
+test-gen: clean-test-gen
 	go generate ./...
 
+clean-test-gen:
+	rm -rf ./cmd/taqc/internal/tests/*_gen.go
 
 clean:
 	rm -f ./dist/taqc_*

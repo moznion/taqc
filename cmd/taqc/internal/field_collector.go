@@ -5,8 +5,11 @@ import (
 	"go/ast"
 	"go/types"
 	"reflect"
+	"strings"
 
+	g "github.com/moznion/gowrtr/generator"
 	"github.com/moznion/taqc"
+	"github.com/moznion/taqc/internal"
 )
 
 // Field represents a field of the structure for a constructor to be generated.
@@ -17,6 +20,8 @@ type Field struct {
 	FieldType string
 	// ParamName is a query parameter's name
 	ParamName string
+
+	TimeFormatterStmt g.Statement
 }
 
 func CollectQueryParameterFieldsFromAST(typeName string, astFiles []*ast.File) ([]*Field, error) {
@@ -43,7 +48,11 @@ func CollectQueryParameterFieldsFromAST(typeName string, astFiles []*ast.File) (
 					continue
 				}
 
-				return convertStructFieldsToQueryParamFields(structType.Fields.List), nil
+				fields, err := convertStructFieldsToQueryParamFields(structType.Fields.List)
+				if err != nil {
+					return nil, err
+				}
+				return fields, nil
 			}
 		}
 	}
@@ -52,7 +61,7 @@ func CollectQueryParameterFieldsFromAST(typeName string, astFiles []*ast.File) (
 
 }
 
-func convertStructFieldsToQueryParamFields(fields []*ast.Field) []*Field {
+func convertStructFieldsToQueryParamFields(fields []*ast.Field) ([]*Field, error) {
 	fs := make([]*Field, 0)
 	for _, field := range fields {
 		if field.Tag == nil || len(field.Tag.Value) <= 0 {
@@ -60,9 +69,34 @@ func convertStructFieldsToQueryParamFields(fields []*ast.Field) []*Field {
 		}
 
 		customTag := reflect.StructTag(field.Tag.Value[1 : len(field.Tag.Value)-1])
-		paramName := customTag.Get(taqc.TagName)
-		if paramName == "" {
+		tag := customTag.Get(internal.TagName)
+		if tag == "" {
 			continue
+		}
+
+		splitTagValues := strings.Split(tag, ",")
+
+		paramName := strings.TrimSpace(splitTagValues[0])
+		timeLayout, unixTimeUnit := internal.ExtractTimeTag(splitTagValues[1:])
+		timeFormatterStmtBase := g.NewAnonymousFunc(false, g.NewAnonymousFuncSignature().AddParameters(g.NewFuncParameter("t", "time.Time")).ReturnTypes("string"))
+
+		timeFormatterStmt := timeFormatterStmtBase.Statements(g.NewReturnStatement(`fmt.Sprintf("%d", t.Unix())`))
+		if unixTimeUnit != "" {
+			switch unixTimeUnit {
+			case "sec":
+				// do nothing; using default stmt
+			case "millisec":
+				timeFormatterStmt = timeFormatterStmtBase.Statements(g.NewReturnStatement(`fmt.Sprintf("%d", t.UnixMilli())`))
+			case "microsec":
+				timeFormatterStmt = timeFormatterStmtBase.Statements(g.NewReturnStatement(`fmt.Sprintf("%d", t.UnixMicro())`))
+			case "nanosec":
+				timeFormatterStmt = timeFormatterStmtBase.Statements(g.NewReturnStatement(`fmt.Sprintf("%d", t.UnixNano())`))
+			default:
+				return nil, fmt.Errorf("%s is unsupported: %w", unixTimeUnit, taqc.ErrUnsupportedUnixTimeUnit)
+			}
+		}
+		if timeLayout != "" { // higher priority
+			timeFormatterStmt = timeFormatterStmtBase.Statements(g.NewReturnStatement(fmt.Sprintf(`t.Format("%s")`, timeLayout)))
 		}
 
 		fieldType := types.ExprString(field.Type)
@@ -74,10 +108,11 @@ func convertStructFieldsToQueryParamFields(fields []*ast.Field) []*Field {
 		fieldName = field.Names[0].Name
 
 		fs = append(fs, &Field{
-			FieldName: fieldName,
-			FieldType: fieldType,
-			ParamName: paramName,
+			FieldName:         fieldName,
+			FieldType:         fieldType,
+			ParamName:         paramName,
+			TimeFormatterStmt: timeFormatterStmt,
 		})
 	}
-	return fs
+	return fs, nil
 }

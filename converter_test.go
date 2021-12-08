@@ -1,7 +1,9 @@
 package taqc
 
 import (
+	"fmt"
 	"net/url"
+	"regexp"
 	"testing"
 	"time"
 
@@ -33,7 +35,6 @@ func TestConvertToQueryParams(t *testing.T) {
 		"buz": []string{"456.789000"},
 		"qux": []string{"1"},
 	}, qp)
-
 }
 
 func TestConvertToQueryParams_ForSliceFields(t *testing.T) {
@@ -124,25 +125,22 @@ func TestConvertToQueryParams_ShouldRaiseErrorWhenTagParamValueIsEmpty(t *testin
 
 func TestConvertToQueryParams_ShouldRaiseErrorWhenInvalidPrimitiveValue(t *testing.T) {
 	type Query struct {
-		Foo time.Time `taqc:"foo"`
+		Foo regexp.Regexp `taqc:"foo"`
 	}
 
 	_, err := ConvertToQueryParams(&Query{
-		Foo: time.Now(),
+		Foo: *regexp.MustCompile(""),
 	})
 	assert.ErrorIs(t, err, ErrUnsupportedFieldType)
 }
 
 func TestConvertToQueryParams_ShouldRaiseErrorWhenInvalidPointerValue(t *testing.T) {
 	type Query struct {
-		Foo *time.Time `taqc:"foo"`
+		Foo *regexp.Regexp `taqc:"foo"`
 	}
 
 	_, err := ConvertToQueryParams(&Query{
-		Foo: func() *time.Time {
-			t := time.Now()
-			return &t
-		}(),
+		Foo: regexp.MustCompile(""),
 	})
 	assert.ErrorIs(t, err, ErrUnsupportedFieldType)
 }
@@ -154,6 +152,184 @@ func TestConvertToQueryParams_ShouldRaiseErrorWhenInvalidSliceValue(t *testing.T
 
 	_, err := ConvertToQueryParams(&Query{
 		Foo: []bool{true},
+	})
+	assert.ErrorIs(t, err, ErrUnsupportedFieldType)
+}
+
+func TestConvertToQueryParams_ShouldRaiseErrorWhenInvalidStructSliceValue(t *testing.T) {
+	type Query struct {
+		Foo []regexp.Regexp `taqc:"foo"`
+	}
+
+	_, err := ConvertToQueryParams(&Query{
+		Foo: []regexp.Regexp{func() regexp.Regexp {
+			r := regexp.MustCompile("")
+			return *r
+		}()},
+	})
+	assert.ErrorIs(t, err, ErrUnsupportedFieldType)
+}
+
+func TestConvertToQueryParams_WithTime(t *testing.T) {
+	type Query struct {
+		UnixSec            time.Time `taqc:"sec"`
+		UnixSec2           time.Time `taqc:"sec2, unixTimeUnit=sec"`
+		UnixMilliSec       time.Time `taqc:"millisec, unixTimeUnit=millisec"`
+		UnixMicroSec       time.Time `taqc:"microsec, unixTimeUnit=microsec"`
+		UnixNanoSec        time.Time `taqc:"nanosec, unixTimeUnit=nanosec"`
+		RFC3339            time.Time `taqc:"rfc3339, timeLayout=2006-01-02T15:04:05Z07:00"`
+		PrioritizedRFC3339 time.Time `taqc:"prioritized_rfc3339, unixTimeUnit=sec, timeLayout=2006-01-02T15:04:05Z07:00"`
+		//                                                     must be prioritized ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	}
+
+	now := time.Now()
+	qp, err := ConvertToQueryParams(&Query{
+		UnixSec:            now,
+		UnixSec2:           now,
+		UnixMilliSec:       now,
+		UnixMicroSec:       now,
+		UnixNanoSec:        now,
+		RFC3339:            now,
+		PrioritizedRFC3339: now,
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, url.Values{
+		"sec":                 []string{fmt.Sprintf("%d", now.Unix())},
+		"sec2":                []string{fmt.Sprintf("%d", now.Unix())},
+		"millisec":            []string{fmt.Sprintf("%d", now.UnixMilli())},
+		"microsec":            []string{fmt.Sprintf("%d", now.UnixMicro())},
+		"nanosec":             []string{fmt.Sprintf("%d", now.UnixNano())},
+		"rfc3339":             []string{now.Format(time.RFC3339)},
+		"prioritized_rfc3339": []string{now.Format(time.RFC3339)},
+	}, qp)
+}
+
+func TestConvertToQueryParams_WithPointerTime(t *testing.T) {
+	type Query struct {
+		UnixSec            *time.Time `taqc:"sec"`
+		UnixSec2           *time.Time `taqc:"sec2, unixTimeUnit=sec"`
+		UnixMilliSec       *time.Time `taqc:"millisec, unixTimeUnit=millisec"`
+		UnixMicroSec       *time.Time `taqc:"microsec, unixTimeUnit=microsec"`
+		UnixNanoSec        *time.Time `taqc:"nanosec, unixTimeUnit=nanosec"`
+		RFC3339            *time.Time `taqc:"rfc3339, timeLayout=2006-01-02T15:04:05Z07:00"`
+		PrioritizedRFC3339 *time.Time `taqc:"prioritized_rfc3339, unixTimeUnit=sec, timeLayout=2006-01-02T15:04:05Z07:00"`
+		//                                                      must be prioritized ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	}
+
+	now := time.Now()
+	qp, err := ConvertToQueryParams(&Query{
+		UnixSec:            &now,
+		UnixSec2:           &now,
+		UnixMilliSec:       &now,
+		UnixMicroSec:       &now,
+		UnixNanoSec:        &now,
+		RFC3339:            &now,
+		PrioritizedRFC3339: &now,
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, url.Values{
+		"sec":                 []string{fmt.Sprintf("%d", now.Unix())},
+		"sec2":                []string{fmt.Sprintf("%d", now.Unix())},
+		"millisec":            []string{fmt.Sprintf("%d", now.UnixMilli())},
+		"microsec":            []string{fmt.Sprintf("%d", now.UnixMicro())},
+		"nanosec":             []string{fmt.Sprintf("%d", now.UnixNano())},
+		"rfc3339":             []string{now.Format(time.RFC3339)},
+		"prioritized_rfc3339": []string{now.Format(time.RFC3339)},
+	}, qp)
+
+	qp, err = ConvertToQueryParams(&Query{
+		UnixSec:            nil,
+		UnixSec2:           nil,
+		UnixMilliSec:       nil,
+		UnixMicroSec:       nil,
+		UnixNanoSec:        nil,
+		RFC3339:            nil,
+		PrioritizedRFC3339: nil,
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, url.Values{}, qp)
+}
+
+func TestConvertToQueryParams_WithTimeSlice(t *testing.T) {
+	type Query struct {
+		UnixSec            []time.Time `taqc:"sec"`
+		UnixSec2           []time.Time `taqc:"sec2, unixTimeUnit=sec"`
+		UnixMilliSec       []time.Time `taqc:"millisec, unixTimeUnit=millisec"`
+		UnixMicroSec       []time.Time `taqc:"microsec, unixTimeUnit=microsec"`
+		UnixNanoSec        []time.Time `taqc:"nanosec, unixTimeUnit=nanosec"`
+		RFC3339            []time.Time `taqc:"rfc3339, timeLayout=2006-01-02T15:04:05Z07:00"`
+		PrioritizedRFC3339 []time.Time `taqc:"prioritized_rfc3339, unixTimeUnit=sec, timeLayout=2006-01-02T15:04:05Z07:00"`
+		//                                                       must be prioritized ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+	}
+
+	now := time.Now()
+	qp, err := ConvertToQueryParams(&Query{
+		UnixSec:            []time.Time{now, now},
+		UnixSec2:           []time.Time{now, now},
+		UnixMilliSec:       []time.Time{now, now},
+		UnixMicroSec:       []time.Time{now, now},
+		UnixNanoSec:        []time.Time{now, now},
+		RFC3339:            []time.Time{now, now},
+		PrioritizedRFC3339: []time.Time{now, now},
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, url.Values{
+		"sec":                 []string{fmt.Sprintf("%d", now.Unix()), fmt.Sprintf("%d", now.Unix())},
+		"sec2":                []string{fmt.Sprintf("%d", now.Unix()), fmt.Sprintf("%d", now.Unix())},
+		"millisec":            []string{fmt.Sprintf("%d", now.UnixMilli()), fmt.Sprintf("%d", now.UnixMilli())},
+		"microsec":            []string{fmt.Sprintf("%d", now.UnixMicro()), fmt.Sprintf("%d", now.UnixMicro())},
+		"nanosec":             []string{fmt.Sprintf("%d", now.UnixNano()), fmt.Sprintf("%d", now.UnixNano())},
+		"rfc3339":             []string{now.Format(time.RFC3339), now.Format(time.RFC3339)},
+		"prioritized_rfc3339": []string{now.Format(time.RFC3339), now.Format(time.RFC3339)},
+	}, qp)
+}
+
+func TestConvertToQueryParams_ShouldRaiseErrorWithInvalidUnixTimeUnit(t *testing.T) {
+	type Query1 struct {
+		InvalidUnixSec time.Time `taqc:"invalidUnixSec, unixTimeUnit=INVALID"`
+	}
+	_, err := ConvertToQueryParams(&Query1{
+		InvalidUnixSec: time.Now(),
+	})
+	assert.ErrorIs(t, err, ErrUnsupportedUnixTimeUnit)
+
+	type Query2 struct {
+		InvalidUnixSec *time.Time `taqc:"invalidUnixSec, unixTimeUnit=INVALID"`
+	}
+	_, err = ConvertToQueryParams(&Query2{
+		InvalidUnixSec: func() *time.Time {
+			now := time.Now()
+			return &now
+		}(),
+	})
+	assert.ErrorIs(t, err, ErrUnsupportedUnixTimeUnit)
+
+	type Query3 struct {
+		InvalidUnixSec []time.Time `taqc:"invalidUnixSec, unixTimeUnit=INVALID"`
+	}
+	_, err = ConvertToQueryParams(&Query3{
+		InvalidUnixSec: []time.Time{time.Now()},
+	})
+	assert.ErrorIs(t, err, ErrUnsupportedUnixTimeUnit)
+}
+
+func TestConvertToQueryParams_WithUnsupportedFieldType(t *testing.T) {
+	type Query struct {
+		Invalid interface{} `taqc:"invalid"`
+	}
+	_, err := ConvertToQueryParams(&Query{
+		Invalid: struct{}{},
+	})
+	assert.ErrorIs(t, err, ErrUnsupportedFieldType)
+}
+
+func TestConvertToQueryParams_WithUnsupportedPointerFieldType(t *testing.T) {
+	type Query struct {
+		Invalid *uintptr `taqc:"invalid"`
+	}
+	ptr := uintptr(0)
+	_, err := ConvertToQueryParams(&Query{
+		Invalid: &ptr,
 	})
 	assert.ErrorIs(t, err, ErrUnsupportedFieldType)
 }

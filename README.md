@@ -39,13 +39,47 @@ fmt.Printf("%s\n", queryParams.Encode())
 
 This library constructs the query parameters (i.e. `url.Value{}`) according to the struct, and the `taqc` tag which is in each field.
 
-Currently, it supports the following field types: `string`, `int64`, `float64`, `bool`, `*string`, `*int64`, `*float64`, `*bool`, `[]string`, `[]int64`, and `[]float64`.
+Currently, it supports the following field types: `string`, `int64`, `float64`, `bool`, `*string`, `*int64`, `*float64`, `*bool`, `[]string`, `[]int64`, `[]float64`, `time.Time`, `*time.Time`, and `[]time.Time`.
 
 If the bool field is `true`, the query parameter becomes `param_name=1`. Else, it omits the parameter.
 
 And, when the pointer value is `nil`, it omits the parameter.
 
 [![GoDoc](https://godoc.org/github.com/moznion/taqc?status.svg)](https://godoc.org/github.com/moznion/taqc)
+
+### `time.Time` field
+
+This library supports the `time.Time` fields. By default, it encodes that timestamp by `Time#Unix()`.
+
+If you want to encode it by another unix time format, you can use `unixTimeUnit` custom tag value.
+For example:
+
+```go
+type Query struct {
+	Foo time.Time `taqc:"foo, unixTimeUnit=millisec"`
+}
+```
+
+in the case of the above example, it encodes the timestamp by `Time#UnixMilli()`.
+
+Currently `unixTmeUnit` supports the following values:
+
+- `sec`
+- `millisec`
+- `microsec`
+- `nanosec`
+
+It also supports encoding with arbitrary time layout by `timeLayout` custom tag value. e.g.
+
+```go
+type Query struct {
+	Foo time.Time `taqc:"foo, timeLayout=2006-01-02T15:04:05Z07:00"` // RFC3339 layout
+}
+```
+
+then, it encodes the timestamp by `Time#Format()` with given layout.
+
+NOTE: `timeLayout` takes priority over `unixTimeUnit`. This means it uses `timeLayout` option even if you put them together.
 
 ## Command-line Tool
 
