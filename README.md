@@ -41,6 +41,8 @@ fmt.Printf("%s\n", queryParams.Encode())
 
 ## Description
 
+[![GoDoc](https://godoc.org/github.com/moznion/taqc?status.svg)](https://godoc.org/github.com/moznion/taqc)
+
 This library constructs the query parameters (i.e. `url.Value{}`) according to the struct, and the `taqc` tag which is in each field.
 
 Currently, it supports the following field types: `string`, `int64`, `float64`, `bool`, `*string`, `*int64`, `*float64`, `*bool`, `[]string`, `[]int64`, `[]float64`, `time.Time`, `*time.Time`, and `[]time.Time`.
@@ -48,8 +50,6 @@ Currently, it supports the following field types: `string`, `int64`, `float64`, 
 If the bool field is `true`, the query parameter becomes `param_name=1`. Else, it omits the parameter.
 
 And, when the pointer value is `nil`, it omits the parameter.
-
-[![GoDoc](https://godoc.org/github.com/moznion/taqc?status.svg)](https://godoc.org/github.com/moznion/taqc)
 
 ### `time.Time` field
 
