@@ -69,7 +69,7 @@ func main() {
 
 	timeUsed := false
 
-	f := g.NewFunc(g.NewFuncReceiver("v", typeName), g.NewFuncSignature("ToQueryParameters").ReturnTypes("url.Values")).AddStatements(
+	f := g.NewFunc(g.NewFuncReceiver("v", "*"+typeName), g.NewFuncSignature("ToQueryParameters").ReturnTypes("url.Values")).AddStatements(
 		g.NewRawStatement("qp := url.Values{}"),
 	)
 	for _, field := range fields {
