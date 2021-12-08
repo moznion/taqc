@@ -1,6 +1,7 @@
 package taqc
 
 import (
+	"fmt"
 	"net/url"
 	"testing"
 	"time"
@@ -33,6 +34,8 @@ func TestConvertToQueryParams(t *testing.T) {
 		"buz": []string{"456.789000"},
 		"qux": []string{"1"},
 	}, qp)
+
+	fmt.Println(qp.Encode())
 }
 
 func TestConvertToQueryParams_ForSliceFields(t *testing.T) {

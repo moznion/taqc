@@ -16,6 +16,12 @@ var (
 
 const TagName = "taqc"
 
+// ConvertToQueryParams converts given structure to the query parameters according to the custom tags.
+//
+// When a field of the structure has `taqc` tag, it converts a value of that field to query parameter.
+// Currently, it supports the following field types: `string`, `int64`, `float64`, `bool`, `*string`, `*int64`, `*float64`, `*bool`, `[]string`, `[]int64`, and `[]float64`.
+// If the bool field is `true`, the query parameter becomes `param_name=1`. Else, it omits the parameter.
+// And when the pointer value is `nil`, it omits the parameter.
 func ConvertToQueryParams(v interface{}) (url.Values, error) {
 	if v == nil {
 		return nil, ErrNilValueGiven
