@@ -100,6 +100,8 @@ This CLI tool generates the code statically, and this can convert that structure
 go install github.com/moznion/taqc/cmd/taqc@latest
 ```
 
+And you can grab a pre-built binary here: https://github.com/moznion/taqc/releases
+
 ### Usage
 
 ```
