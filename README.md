@@ -1,4 +1,4 @@
-# taqc 🚕
+# taqc 🚕 [![.github/workflows/check.yml](https://github.com/moznion/taqc/actions/workflows/check.yml/badge.svg)](https://github.com/moznion/taqc/actions/workflows/check.yml) [![codecov](https://codecov.io/gh/moznion/taqc/branch/main/graph/badge.svg?token=NU9ZSW4ZL9)](https://codecov.io/gh/moznion/taqc)
 
 <b>Ta</b>g based url <b>Q</b>uery parameters <b>C</b>onstructor.  
 (This is pronounced as same as "taxi")
