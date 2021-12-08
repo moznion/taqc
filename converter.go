@@ -9,7 +9,7 @@ import (
 )
 
 var (
-	ErrGivenValueIsNil           = errors.New("given value is nil")
+	ErrNilValueGiven             = errors.New("given value is nil")
 	ErrQueryParameterNameIsEmpty = errors.New("query parameter name is empty in a tag")
 	ErrUnsupportedFieldType      = errors.New("unsupported filed type has come")
 )
@@ -18,7 +18,7 @@ const tagName = "taqc"
 
 func ConvertToQueryParams(v interface{}) (url.Values, error) {
 	if v == nil {
-		return nil, ErrGivenValueIsNil
+		return nil, ErrNilValueGiven
 	}
 
 	qp := url.Values{}
@@ -74,7 +74,7 @@ func ConvertToQueryParams(v interface{}) (url.Values, error) {
 			l := field.Len()
 			for j := 0; j < l; j++ {
 				item := field.Index(j)
-				switch item.Kind() { // TODO optimize
+				switch item.Kind() {
 				case reflect.String:
 					qp.Add(paramName, item.String())
 				case reflect.Int64:

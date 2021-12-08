@@ -3,29 +3,30 @@ package taqc
 import (
 	"net/url"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestConvertToQueryParams(t *testing.T) {
 	type Query struct {
-		Foo    string  `taqc:"foo"`
-		Bar    int64   `taqc:"bar"`
-		Buz    float64 `taqc:"buz"`
-		Qux    bool    `taqc:"qux"`
-		FooBar bool    `taqc:"foobar"`
+		Foo             string  `taqc:"foo"`
+		Bar             int64   `taqc:"bar"`
+		Buz             float64 `taqc:"buz"`
+		Qux             bool    `taqc:"qux"`
+		FooBar          bool    `taqc:"foobar"`
+		ShouldBeIgnored string
 	}
 
-	q := &Query{
-		Foo:    "str-value",
-		Bar:    123,
-		Buz:    456.789,
-		Qux:    true,
-		FooBar: false,
-	}
-	qp, err := ConvertToQueryParams(q)
+	qp, err := ConvertToQueryParams(&Query{
+		Foo:             "str-value",
+		Bar:             123,
+		Buz:             456.789,
+		Qux:             true,
+		FooBar:          false,
+		ShouldBeIgnored: "should-be-ignored",
+	})
 	assert.NoError(t, err)
-
 	assert.EqualValues(t, url.Values{
 		"foo": []string{"str-value"},
 		"bar": []string{"123"},
@@ -41,14 +42,12 @@ func TestConvertToQueryParams_ForSliceFields(t *testing.T) {
 		Buz []float64 `taqc:"buz"`
 	}
 
-	q := &Query{
+	qp, err := ConvertToQueryParams(&Query{
 		Foo: []string{"s1", "s2"},
 		Bar: []int64{123, 456},
 		Buz: []float64{123.456, 234.567},
-	}
-	qp, err := ConvertToQueryParams(q)
+	})
 	assert.NoError(t, err)
-
 	assert.EqualValues(t, url.Values{
 		"foo": []string{"s1", "s2"},
 		"bar": []string{"123", "456"},
@@ -65,7 +64,7 @@ func TestConvertToQueryParams_ForPointerFields(t *testing.T) {
 		FooBar *bool    `taqc:"foobar"`
 	}
 
-	q := &Query{
+	qp, err := ConvertToQueryParams(&Query{
 		Foo: func() *string {
 			v := "str-value"
 			return &v
@@ -86,14 +85,74 @@ func TestConvertToQueryParams_ForPointerFields(t *testing.T) {
 			v := false
 			return &v
 		}(),
-	}
-	qp, err := ConvertToQueryParams(q)
+	})
 	assert.NoError(t, err)
-
 	assert.EqualValues(t, url.Values{
 		"foo": []string{"str-value"},
 		"bar": []string{"123"},
 		"buz": []string{"456.789000"},
 		"qux": []string{"1"},
 	}, qp)
+
+	qp, err = ConvertToQueryParams(&Query{
+		Foo:    nil,
+		Bar:    nil,
+		Buz:    nil,
+		Qux:    nil,
+		FooBar: nil,
+	})
+	assert.NoError(t, err)
+	assert.EqualValues(t, url.Values{}, qp)
+}
+
+func TestConvertToQueryParams_ShouldRaiseErrorWhenNilValueGiven(t *testing.T) {
+	_, err := ConvertToQueryParams(nil)
+	assert.ErrorIs(t, err, ErrNilValueGiven)
+}
+
+func TestConvertToQueryParams_ShouldRaiseErrorWhenTagParamValueIsEmpty(t *testing.T) {
+	type Query struct {
+		Foo string `taqc:""`
+	}
+
+	_, err := ConvertToQueryParams(&Query{
+		Foo: "foo",
+	})
+	assert.ErrorIs(t, err, ErrQueryParameterNameIsEmpty)
+}
+
+func TestConvertToQueryParams_ShouldRaiseErrorWhenInvalidPrimitiveValue(t *testing.T) {
+	type Query struct {
+		Foo time.Time `taqc:"foo"`
+	}
+
+	_, err := ConvertToQueryParams(&Query{
+		Foo: time.Now(),
+	})
+	assert.ErrorIs(t, err, ErrUnsupportedFieldType)
+}
+
+func TestConvertToQueryParams_ShouldRaiseErrorWhenInvalidPointerValue(t *testing.T) {
+	type Query struct {
+		Foo *time.Time `taqc:"foo"`
+	}
+
+	_, err := ConvertToQueryParams(&Query{
+		Foo: func() *time.Time {
+			t := time.Now()
+			return &t
+		}(),
+	})
+	assert.ErrorIs(t, err, ErrUnsupportedFieldType)
+}
+
+func TestConvertToQueryParams_ShouldRaiseErrorWhenInvalidSliceValue(t *testing.T) {
+	type Query struct {
+		Foo []bool `taqc:"foo"`
+	}
+
+	_, err := ConvertToQueryParams(&Query{
+		Foo: []bool{true},
+	})
+	assert.ErrorIs(t, err, ErrUnsupportedFieldType)
 }
