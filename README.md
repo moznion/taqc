@@ -29,7 +29,7 @@ if err != nil {
 	panic(err)
 }
 
-fmt.Printf(queryParams.Encode())
+fmt.Printf("%s\n", queryParams.Encode())
 
 // Output:
 // buz=123&foo=string_value&foobar=1&qux=123.456000&qux=234.567000

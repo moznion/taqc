@@ -1,6 +1,6 @@
 .PHONY: check test lint fmt fmt-check
 
-check: lint test fmt-check
+check: gen lint test fmt-check
 
 test: gen
 	go test ./... -race -v -coverprofile="coverage.txt" -covermode=atomic
