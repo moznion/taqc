@@ -35,6 +35,10 @@ fmt.Printf("%s\n", queryParams.Encode())
 // buz=123&foo=string_value&foobar=1&qux=123.456000&qux=234.567000
 ```
 
+## Requirements
+
+- Go 1.17 or later
+
 ## Description
 
 This library constructs the query parameters (i.e. `url.Value{}`) according to the struct, and the `taqc` tag which is in each field.
