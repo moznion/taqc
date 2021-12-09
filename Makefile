@@ -10,11 +10,11 @@ lint:
 	staticcheck ./...
 
 fmt:
-	gofmt -w -s *.go
-	goimports -w *.go
+	gofmt -w -s **/*.go *.go
+	goimports -w */**.go *.go
 
 fmt-check:
-	goimports -l *.go | grep [^*][.]go$$; \
+	goimports -l **/*.go *.go | grep [^*][.]go$$; \
 		EXIT_CODE=$$?; \
 		if [ $$EXIT_CODE -eq 0 ]; then exit 1; fi
 
