@@ -66,7 +66,7 @@ type Query struct {
 
 in the case of the above example, it encodes the timestamp by `Time#UnixMilli()`.
 
-Currently `unixTmeUnit` supports the following values:
+Currently `unixTimeUnit` supports the following values:
 
 - `sec`
 - `millisec`
